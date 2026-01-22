@@ -3,163 +3,203 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Knock Game</title>
+    <title>Landscape Knock Hammer</title>
     <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            text-align: center;
+        /* Reset and Fullscreen setup */
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
             background-color: #222;
-            color: #eee;
-            touch-action: none; /* Prevents zooming on taps */
+            font-family: 'Segoe UI', sans-serif;
             overflow: hidden;
+            touch-action: none;
         }
 
+        /* Enforcing Landscape Mode */
+        #portrait-warning {
+            display: none; /* Hidden by default in landscape */
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: #111; color: white;
+            z-index: 100;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+        }
+
+        @media screen and (orientation: portrait) {
+            #portrait-warning { display: flex; }
+            #game-container { display: none; }
+        }
+
+        /* Main Game Area */
         #game-container {
             position: relative;
-            width: 90%;
-            max-width: 400px;
-            height: 300px;
-            margin: 20px auto;
-            background-color: #333;
-            border: 3px solid #555;
-            border-radius: 10px;
-            overflow: hidden;
+            width: 100vw;
+            height: 100vh;
+            background: radial-gradient(circle at center, #444 0%, #222 100%);
         }
 
-        /* The stationary Hammer area */
-        #hammer-zone {
-            position: absolute;
-            top: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 60px;
-            height: 80px;
-            /* Visual representation of hammer head */
-            background-color: #888;
-            border-bottom: 5px solid #666;
-            z-index: 2;
-            transition: transform 0.1s ease-in;
-        }
+        /* --- The Objects --- */
 
-        /* Animation class added when a knock happens */
-        .swinging {
-            transform: translateX(-50%) translateY(20px) scale(1.1) !important;
-            background-color: #aaa !important;
-        }
-
-        /* The moving target sprite */
+        /* The Target Sprite (The "Mole") */
         #target-sprite {
             position: absolute;
-            bottom: 10px;
+            bottom: 15%; /* Positioned near bottom */
             left: 0;
-            width: 50px;
-            height: 50px;
-            background-color: #ff4757; /* Red */
-            border-radius: 5px;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+            width: 60px;
+            height: 40px;
+            background-color: #ff4757;
+            border-radius: 8px 8px 0 0;
+            box-shadow: inset 0 -5px rgba(0,0,0,0.2);
+            z-index: 1;
         }
 
-        /* Visual feedback classes */
-        .hit-success { background-color: #2ed573 !important; } /* Green */
-        .hit-fail { background-color: #747d8c !important; } /* Grey out */
+        /* The Hammer Assembly (Handle + Head) */
+        #hammer-assembly {
+            position: absolute;
+            left: 50%;
+            /* Start position high up */
+            top: 15%; 
+            transform: translateX(-50%);
+            z-index: 5;
+            /* The critical animation timing for the down swing */
+            transition: top 0.15s ease-in; 
+        }
 
+        /* The class JS adds to trigger the down swing */
+        .hammer-striking {
+            /* Move down to overlaps with target-sprite's bottom position */
+            top: 72% !important; 
+        }
+
+        /* Visual styling of the hammer */
+        .hammer-head {
+            width: 80px; height: 40px;
+            background: #888; border-radius: 4px; border: 3px solid #555;
+            position: relative; top: 40px;
+        }
+        .hammer-handle {
+            width: 20px; height: 60px;
+            background: #8B4513; margin: 0 auto; border-radius: 4px;
+        }
+
+
+        /* --- UI --- */
         #ui-layer {
-            margin-top: 20px;
+            position: absolute; top: 10px; left: 10px; color: white; z-index: 10;
+            text-shadow: 1px 1px 3px black;
         }
-        
+        #score-board { font-size: 2rem; font-weight: bold; }
+        #start-overlay {
+            position: absolute; top:0; left:0; width:100%; height:100%;
+            background: rgba(0,0,0,0.7); color:white; display:flex;
+            flex-direction: column; justify-content: center; align-items: center; z-index: 50;
+        }
         button {
-            background-color: #3742fa;
-            color: white; border: none; padding: 15px 30px;
-            font-size: 1.2rem; border-radius: 8px; cursor: pointer;
+            background-color: #3742fa; color: white; border: none; padding: 20px 40px;
+            font-size: 1.5rem; border-radius: 12px; margin-top:20px;
         }
 
-        #score-board { font-size: 1.5rem; font-weight: bold; margin-bottom: 10px; }
+        /* Hit Feedback Animations */
+        .hit-success-anim { animation: flashGreen 0.3s; }
+        .hit-fail-anim { animation: flashGrey 0.3s; }
+
+        @keyframes flashGreen { 0% {background:#ff4757;} 50% {background:#2ed573; transform: scale(0.9);} 100% {background:#ff4757; transform: scale(1);}}
+        @keyframes flashGrey { 0% {background:#ff4757;} 50% {background:#7f8c8d; opacity: 0.5;} 100% {background:#ff4757; opacity: 1;}}
+
     </style>
 </head>
 <body>
 
-    <h1>Knock to Hit!</h1>
-
-    <div id="game-container">
-        <div id="hammer-zone"></div>
-        <div id="target-sprite"></div>
+    <div id="portrait-warning">
+        <h1>⚠️</h1>
+        <h2>Please Rotate Your Phone</h2>
+        <p>This game requires landscape mode.</p>
     </div>
 
-    <div id="ui-layer">
-        <div id="score-board">Score: 0</div>
-        <p id="status">Hold phone horizontally in portrait mode.</p>
-        <button id="startBtn" onclick="startGame()">START GAME</button>
+    <div id="game-container">
+        <div id="ui-layer">
+            <div id="score-board">Score: 0</div>
+        </div>
+
+        <div id="hammer-assembly">
+            <div class="hammer-handle"></div>
+            <div class="hammer-head"></div>
+        </div>
+        
+        <div id="target-sprite"></div>
+
+        <div id="start-overlay">
+            <h1>Hammer Strike!</h1>
+            <p>Hold phone horizontally with both hands.</p>
+            <p>Knock the side sharply to strike.</p>
+            <button onclick="startGame()">START</button>
+        </div>
     </div>
 
 <script>
     // --- Configuration ---
-    const KNOCK_THRESHOLD = 18; // Slightly higher threshold for gameplay to avoid misfires
-    const KNOCK_COOLDOWN = 400; // ms between swings
-    const SPRITE_SPEED = 5;     // Speed of movement
+    // Note: Threshold might need tuning depending on device weight/size
+    const KNOCK_THRESHOLD = 18; 
+    // Must match CSS transition time (0.15s = 150ms)
+    const STRIKE_DURATION_MS = 150; 
+    const SPRITE_SPEED = 8; // Faster for landscape
 
-    // --- Game State Variables ---
+    // --- Game State ---
     let isPlaying = false;
     let score = 0;
     let lastKnockTime = 0;
+    let isStrikingAnim = false; // Prevents double hits during animation
     
-    // Sprite Movement Variables
+    // Movement Variables
     let spritePos = 0;
-    let moveDirection = 1; // 1 = right, -1 = left
+    let moveDirection = 1;
     let containerWidth = 0;
     let spriteWidth = 0;
     let animationFrameId;
 
     // DOM Elements
     const sprite = document.getElementById('target-sprite');
-    const hammer = document.getElementById('hammer-zone');
+    const hammerAssembly = document.getElementById('hammer-assembly');
     const gameContainer = document.getElementById('game-container');
     const scoreDisplay = document.getElementById('score-board');
-    const statusText = document.getElementById('status');
-    const startBtn = document.getElementById('startBtn');
+    const startOverlay = document.getElementById('start-overlay');
 
-    // --- Game Loop (Movement) ---
+
+    // --- 1. The Game Loop (Horizontal Movement) ---
     function gameLoop() {
         if (!isPlaying) return;
 
-        // Update dimensions in case of resize
         containerWidth = gameContainer.clientWidth;
         spriteWidth = sprite.clientWidth;
 
-        // Calculate next position
         spritePos += (SPRITE_SPEED * moveDirection);
 
-        // Bounce off walls
-        // Right wall check
+        // Bounce logic
         if (spritePos + spriteWidth >= containerWidth) {
             spritePos = containerWidth - spriteWidth;
             moveDirection = -1;
-        } 
-        // Left wall check
-        else if (spritePos <= 0) {
+        } else if (spritePos <= 0) {
             spritePos = 0;
             moveDirection = 1;
         }
-
-        // Apply position
         sprite.style.left = spritePos + 'px';
-
-        // Request next frame
         animationFrameId = requestAnimationFrame(gameLoop);
     }
 
 
-    // --- Sensor & Input Handling ---
+    // --- 2. Sensor Handling ---
     function startGame() {
-        // Request permissions (iOS requirement standard)
+        // iOS Permission handling
         if (typeof DeviceMotionEvent.requestPermission === 'function') {
             DeviceMotionEvent.requestPermission()
-                .then(response => {
-                    if (response === 'granted') {
-                       initGame();
-                    } else { alert("Permission needed to play."); }
-                });
+                .then(res => { if (res === 'granted') initGame(); });
         } else {
-            // Android standard
+            // Android handling
             initGame();
         }
     }
@@ -168,58 +208,84 @@
         window.addEventListener('devicemotion', handleMotion);
         isPlaying = true;
         score = 0;
-        scoreDisplay.innerText = "Score: " + score;
-        startBtn.style.display = 'none';
-        statusText.innerText = "Game Active! Knock side to hit.";
-        // Start movement loop
-        cancelAnimationFrame(animationFrameId); // ensure no duplicate loops
+        scoreDisplay.innerText = "Score: 0";
+        startOverlay.style.display = 'none';
+        // Force immediate measurement in case we started in landscape
+        resizeGame(); 
         gameLoop();
     }
+    
+    // Handle resizing if they rotate mid-game
+    window.addEventListener('resize', resizeGame);
+    function resizeGame() { containerWidth = gameContainer.clientWidth; }
+
 
     function handleMotion(event) {
-        if (!isPlaying) return;
+        if (!isPlaying || isStrikingAnim) return;
 
-        // Use X acceleration for side knocks
-        const xAcc = event.acceleration.x || 0;
+        // In Landscape, the "side" knock often registers more strongly on Y or Z 
+        // depending on exactly how you hold it. Let's check the max impact on X or Y.
+        const x = Math.abs(event.acceleration.x || 0);
+        const y = Math.abs(event.acceleration.y || 0);
+        const maxForce = Math.max(x, y);
+        
         const now = Date.now();
 
-        // Check threshold and cooldown
-        if (Math.abs(xAcc) > KNOCK_THRESHOLD && now - lastKnockTime > KNOCK_COOLDOWN) {
+        // Cooldown extended slightly to account for animation time
+        if (maxForce > KNOCK_THRESHOLD && now - lastKnockTime > STRIKE_DURATION_MS + 200) {
             lastKnockTime = now;
-            swingHammer();
+            triggerHammerStrike();
         }
     }
 
 
-    // --- Core Gameplay Logic ---
-    function swingHammer() {
-        // 1. Visual Feedback (Hammer Swing Animation)
-        hammer.classList.add('swinging');
-        setTimeout(() => hammer.classList.remove('swinging'), 150);
+    // --- 3. Core Mechanics: The Strike & Collision ---
+    function triggerHammerStrike() {
+        isStrikingAnim = true;
 
-        // 2. Hit Detection
-        // We define the "hit zone" as the center 20% of the container
-        const safeZoneStart = (containerWidth / 2) - (spriteWidth / 2);
-        const safeZoneEnd = (containerWidth / 2) + (spriteWidth / 2);
+        // A. Start visual animation downward
+        hammerAssembly.classList.add('hammer-striking');
+
+        // B. Wait for the hammer to physically reach the bottom before checking hit
+        setTimeout(() => {
+            // --- MOMENT OF IMPACT ---
+            checkCollision();
+
+            // C. Brief pause at bottom, then retract upward
+            setTimeout(() => {
+                hammerAssembly.classList.remove('hammer-striking');
+                isStrikingAnim = false;
+            }, 100); // How long hammer stays on ground
+
+        }, STRIKE_DURATION_MS); // Wait for down animation to finish
+    }
+
+    function checkCollision() {
+        // Hit zone is the center of the screen, about 80px wide (size of hammer head)
+        const screen Center = containerWidth / 2;
+        const safeZoneStart = screenCenter - 40; 
+        const safeZoneEnd = screenCenter + 40;
         
-        // Calculate the center point of the moving sprite
         const spriteCenter = spritePos + (spriteWidth / 2);
 
-        // Check if sprite center is within the safe zone
         if (spriteCenter >= safeZoneStart && spriteCenter <= safeZoneEnd) {
-            // SUCCESS HIT
+            // HIT!
             score++;
             scoreDisplay.innerText = "Score: " + score;
-            // Flash green
-            sprite.classList.add('hit-success');
-            setTimeout(() => sprite.classList.remove('hit-success'), 200);
+            applyFeedback('hit-success-anim');
         } else {
             // MISS
-            // Flash grey indicating a miss
-            sprite.classList.add('hit-fail');
-            setTimeout(() => sprite.classList.remove('hit-fail'), 200);
+            applyFeedback('hit-fail-anim');
         }
     }
+
+    function applyFeedback(animClass) {
+        sprite.classList.remove('hit-success-anim', 'hit-fail-anim');
+        // Trigger reflow to restart animation if triggered quickly
+        void sprite.offsetWidth; 
+        sprite.classList.add(animClass);
+    }
+
 </script>
 </body>
 </html>
